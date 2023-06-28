@@ -1,9 +1,16 @@
 name: Deploy Project
 on: 
   # List of events 
+  push:
+    branches:
+      - main
+      - "dev-*"
+      - "feat/**" 
+    paths:
+      - ".github/workflows/*"
   pull_request:
-  # List of event activities
     types:
+      # List of event activities
       - opened
       - edited
       - closed
