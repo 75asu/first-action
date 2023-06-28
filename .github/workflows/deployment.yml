@@ -1,5 +1,12 @@
 name: Deploy Project
-on: [push, workflow_dispatch]
+on: 
+  # List of events 
+  pull_request:
+  # List of event activities
+    types:
+      - opened
+      - edited
+  workflow_dispatch:
 
 jobs:
   test:
