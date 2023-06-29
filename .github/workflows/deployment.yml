@@ -16,6 +16,7 @@ on:
       - closed
   workflow_dispatch:
 
+
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -23,11 +24,17 @@ jobs:
       - name: Get code
         uses: actions/checkout@v3
 
-      - name: Install NodeJS
-        uses: actions/setup-node@v3
+      # Cache is available to all the jobs by default, but each job can also have their own cache
+      - name: Cache dependencies
+        uses: actions/cache@v3
         with:
-          node-version: 18
-
+          path: ~/.npm  #keeps the cache in this location in github's cloud instance
+          # when required fetches the cache using this key
+          # as it's name is expected to be variable everytime, so a variable name is given in such a way that
+          # it will see if any change happens tot he package-lock.json file, then it will generate a new hash 
+          # the new hash will be added to the name of the key of the hash to make it unique
+          key: deps-node-modules-${{ hashfiles('**/package-lock.json') }}  
+          
       - name: Install dependencies
         run: npm ci 
 
