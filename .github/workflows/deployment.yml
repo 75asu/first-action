@@ -1,77 +1,70 @@
-name: Deploy Project
-on: 
-  # List of events 
+name: Website Deployment
+on:
   push:
     branches:
       - main
-      - "dev-*"
-      - "feat/**" 
-    paths:
-      - ".github/workflows/*"
-  pull_request:
-    types:
-      # List of event activities
-      - opened
-      - edited
-      - closed
   workflow_dispatch:
-
-
+    
 jobs:
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get code
+        uses: actions/checkout@v3
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
+      - name: Install dependencies
+        run: npm ci
+      - name: Lint code
+        run: npm run lint
   test:
     runs-on: ubuntu-latest
     steps:
       - name: Get code
         uses: actions/checkout@v3
-
-      # Cache is available to all the jobs by default, but each job can also have their own cache
       - name: Cache dependencies
+        id: cache
         uses: actions/cache@v3
         with:
-          path: ~/.npm  #keeps the cache in this location in github's cloud instance
-          # when required fetches the cache using this key
-          # as it's name is expected to be variable everytime, so a variable name is given in such a way that
-          # it will see if any change happens tot he package-lock.json file, then it will generate a new hash 
-          # the new hash will be added to the name of the key of the hash to make it unique
-          key: deps-node-modules-${{ hashfiles('**/package-lock.json') }}  
-          
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-        run: npm ci 
-
-      - name: Run tests
-        run: npm test
-
+        run: npm ci
+      - name: Test code
+        id: run-tests
+        run: npm run test
+      - name: Upload test report
+        if: failure() && steps.run-tests.outcome == "failure"
+        uses: actions/upload-artifact@v3
+        with:
+          name: test-report
+          path: test.json
   build:
     needs: test
     runs-on: ubuntu-latest
-    outputs:
-    # Get the output from the id "publish" and file "script-file"
-    # This can be used in other jobs
-      script-file: ${{ steps.publish.outputs.script-file }}
     steps:
       - name: Get code
         uses: actions/checkout@v3
-
+      - name: Cache dependencies
+        id: cache
+        uses: actions/cache@v3
+        with:
+          path: ~/.npm
+          key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-        run: npm ci 
-
+        run: npm ci
       - name: Build website
+        id: build-website
         run: npm run build
-
-      # Publish JS filenames so that other jobs can use them
-      - name: Publish JS filename
-        id: publish 
-        run: find dist/assets/ -type f -execdir echo 'script-file={}' >> $GITHUB_OUTPUT ';'
-
       - name: Upload artifacts
         uses: actions/upload-artifact@v3
         with:
           name: dist-files
-          # The list of files and folder to be stored as artifact
-          path: |
-            dist 
-            package.json
-
+          path: dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
@@ -80,13 +73,7 @@ jobs:
         uses: actions/download-artifact@v3
         with:
           name: dist-files
-
-      - name: Check for artifact
+      - name: Output contents
         run: ls
-
-      - name: Output filename
-        #  Fetch the value of "script-file" parameter of type "outputs" from "build" job
-        run: echo "${{ needs.build.outputs.script-file }}"
-
-      - name: Deploy 
-        run: echo "Deployed..."
+      - name: Deploy
+        run: echo "Deploying..."
