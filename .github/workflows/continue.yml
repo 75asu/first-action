@@ -1,10 +1,8 @@
-name: Website Deployment
+name: Contiue Website Deployment
 on:
   push:
     branches:
       - main
-  workflow_dispatch:
-     
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -18,7 +16,6 @@ jobs:
           path: node_modules
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-      # if node_modules is not found in the cache then install them
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
       - name: Lint code
@@ -38,7 +35,6 @@ jobs:
         if: steps.cache.outputs.cache-hit != 'true'
         run: npm ci
       - name: Test code
-        # the job should continue execution even if the step fails
         continue-on-error: true
         id: run-tests
         run: npm run test
@@ -60,8 +56,8 @@ jobs:
           path: node_modules
           key: deps-node-modules-${{ hashFiles('**/package-lock.json') }}
       - name: Install dependencies
-        run: npm ci
         if: steps.cache.outputs.cache-hit != 'true'
+        run: npm ci
       - name: Build website
         id: build-website
         run: npm run build
@@ -82,12 +78,12 @@ jobs:
         run: ls
       - name: Deploy
         run: echo "Deploying..."
-
   report:
     needs: [lint, deploy]
     if: failure()
     runs-on: ubuntu-latest
     steps:
       - name: Output information
-        run: |
+        run: | 
+          echo "Something went wrong"
           echo "${{ toJSON(github) }}"
